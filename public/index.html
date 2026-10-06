@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📁 文件中转站</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    .upload-area {
+      border: 3px dashed #667eea;
+      border-radius: 15px;
+      padding: 50px 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: #f8f9ff;
+    }
+    
+    .upload-area:hover, .upload-area.dragover {
+      border-color: #764ba2;
+      background: #f0f2ff;
+      transform: translateY(-2px);
+    }
+    
+    .upload-area .icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+    }
+    
+    .upload-area p {
+      color: #666;
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+    }
+    
+    .upload-area .hint {
+      color: #999;
+      font-size: 0.9rem;
+    }
+    
+    #fileInput {
+      display: none;
+    }
+    
+    .file-list {
+      margin-top: 20px;
+    }
+    
+    .file-list h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .file-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      border-radius: 12px;
+      background: #f8f9fa;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+      border: 1px solid #e9ecef;
+    }
+    
+    .file-item:hover {
+      background: #e9ecef;
+      transform: translateX(5px);
+    }
+    
+    .file-icon {
+      font-size: 2rem;
+      margin-right: 15px;
+      width: 40px;
+      text-align: center;
+    }
+    
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .file-name {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .file-meta {
+      font-size: 0.85rem;
+      color: #666;
+    }
+    
+    .file-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-danger {
+      background: #ff4757;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #ff3344;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 50px;
+      color: #999;
+    }
+    
+    .empty-state .icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+      opacity: 0.5;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: #e9ecef;
+      border-radius: 2px;
+      margin-top: 10px;
+      overflow: hidden;
+      display: none;
+    }
+    
+    .progress-bar.active {
+      display: block;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    /* 文本共享样式 */
+    .text-share {
+      margin-top: 0;
+    }
+    
+    .text-share h2 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .text-area {
+      width: 100%;
+      min-height: 150px;
+      max-height: 300px;
+      padding: 15px;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-family: inherit;
+      resize: vertical;
+      transition: border-color 0.3s ease;
+      background: #f8f9fa;
+    }
+    
+    .text-area:focus {
+      outline: none;
+      border-color: #667eea;
+      background: white;
+    }
+    
+    .text-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .text-info {
+      color: #666;
+      font-size: 0.85rem;
+    }
+    
+    .text-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .sync-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85rem;
+      color: #2ed573;
+      transition: all 0.3s ease;
+    }
+    
+    .sync-status.syncing {
+      color: #667eea;
+    }
+    
+    .sync-status.error {
+      color: #ff4757;
+    }
+    
+    .pulse {
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #333;
+      color: white;
+      padding: 15px 30px;
+      border-radius: 50px;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+    
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    
+    .toast.success { background: #2ed573; }
+    .toast.error { background: #ff4757; }
+    
+    @media (max-width: 600px) {
+      .header h1 {
+        font-size: 1.8rem;
+      }
+      
+      .card {
+        padding: 20px;
+      }
+      
+      .upload-area {
+        padding: 30px 20px;
+      }
+      
+      .file-item {
+        flex-wrap: wrap;
+      }
+      
+      .file-actions {
+        width: 100%;
+        margin-top: 10px;
+        justify-content: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📁 文件中转站</h1>
+      <p>同一网络下快速传输文件，支持手机/电脑互传</p>
+    </div>
+    
+    <div class="card">
+      <div class="upload-area" id="uploadArea">
+        <div class="icon">📤</div>
+        <p>点击或拖拽文件到此处上传</p>
+        <span class="hint">支持多个文件，单个文件最大 500MB</span>
+        <div class="progress-bar" id="progressBar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+      <input type="file" id="fileInput" multiple>
+    </div>
+    
+    <div class="card text-share">
+      <h2>📝 文本共享</h2>
+      <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">在此输入文本，所有设备实时同步</p>
+      <textarea 
+        id="sharedText" 
+        class="text-area" 
+        placeholder="在这里输入或粘贴文本内容...&#10;支持多行文本，实时同步到所有设备"
+      ></textarea>
+      <div class="text-actions">
+        <div class="text-info">
+          <span id="charCount">0</span> 字符
+          <span class="sync-status" id="syncStatus">
+            <span>✓</span> 已同步
+          </span>
+        </div>
+        <div class="text-buttons">
+          <button class="btn btn-danger" onclick="clearText()">🗑️ 清空</button>
+          <button class="btn btn-primary" onclick="saveText()">💾 保存</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="file-list">
+        <h2>📂 文件列表</h2>
+        <div id="fileListContainer">
+          <div class="empty-state">
+            <div class="icon">📭</div>
+            <p>暂无文件，请上传</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="toast" id="toast"></div>
+  
+  <script>
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileListContainer = document.getElementById('fileListContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const toast = document.getElementById('toast');
+    const sharedText = document.getElementById('sharedText');
+    const charCount = document.getElementById('charCount');
+    const syncStatus = document.getElementById('syncStatus');
+    
+    let lastTextContent = '';
+    let lastModified = null;
+    
+    // 点击上传
+    uploadArea.addEventListener('click', () => fileInput.click());
+    
+    // 文件选择
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        uploadFiles(e.target.files);
+      }
+    });
+    
+    // 拖拽上传
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        uploadFiles(e.dataTransfer.files);
+      }
+    });
+    
+    // 上传文件
+    async function uploadFiles(files) {
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('files', file);
+      }
+      
+      progressBar.classList.add('active');
+      progressFill.style.width = '0%';
+      
+      try {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            progressFill.style.width = percentComplete + '%';
+          }
+        });
+        
+        xhr.addEventListener('load', () => {
+          progressBar.classList.remove('active');
+          progressFill.style.width = '0%';
+          
+          if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            showToast(response.message, 'success');
+            loadFileList();
+          } else {
+            showToast('上传失败', 'error');
+          }
+        });
+        
+        xhr.addEventListener('error', () => {
+          progressBar.classList.remove('active');
+          showToast('上传失败', 'error');
+        });
+        
+        xhr.open('POST', '/api/upload');
+        xhr.send(formData);
+        
+      } catch (err) {
+        progressBar.classList.remove('active');
+        showToast('上传失败: ' + err.message, 'error');
+      }
+    }
+    
+    // 加载文件列表
+    async function loadFileList() {
+      try {
+        const response = await fetch('/api/files');
+        const files = await response.json();
+        renderFileList(files);
+      } catch (err) {
+        console.error('加载文件列表失败:', err);
+      }
+    }
+    
+    // 渲染文件列表
+    function renderFileList(files) {
+      if (files.length === 0) {
+        fileListContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📭</div>
+            <p>暂无文件，请上传</p>
+          </div>
+        `;
+        return;
+      }
+      
+      fileListContainer.innerHTML = files.map(file => `
+        <div class="file-item">
+          <div class="file-icon">${getFileIcon(file.name)}</div>
+          <div class="file-info">
+            <div class="file-name" title="${file.name}">${file.name}</div>
+            <div class="file-meta">${file.size} · ${file.uploadTime}</div>
+          </div>
+          <div class="file-actions">
+            <a href="/api/download/${file.filename}" class="btn btn-primary" download>⬇️ 下载</a>
+            <button class="btn btn-danger" onclick="deleteFile('${file.filename}')">🗑️ 删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // 获取文件图标
+    function getFileIcon(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      const iconMap = {
+        pdf: '📄',
+        doc: '📝', docx: '📝',
+        xls: '📊', xlsx: '📊',
+        ppt: '📊', pptx: '📊',
+        jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️',
+        mp4: '🎬', avi: '🎬', mkv: '🎬', mov: '🎬',
+        mp3: '🎵', wav: '🎵', flac: '🎵',
+        zip: '📦', rar: '📦', '7z': '📦',
+        txt: '📃',
+        js: '💻', html: '💻', css: '💻', py: '💻', java: '💻'
+      };
+      return iconMap[ext] || '📎';
+    }
+    
+    // 删除文件
+    async function deleteFile(filename) {
+      if (!confirm('确定要删除这个文件吗？')) return;
+      
+      try {
+        const response = await fetch(`/api/files/${filename}`, { method: 'DELETE' });
+        const result = await response.json();
+        
+        if (result.success) {
+          showToast('删除成功', 'success');
+          loadFileList();
+        } else {
+          showToast('删除失败', 'error');
+        }
+      } catch (err) {
+        showToast('删除失败: ' + err.message, 'error');
+      }
+    }
+    
+    // 显示提示
+    function showToast(message, type = 'success') {
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+    
+    // ==================== 文本共享功能 ====================
+    
+    // 字符计数
+    sharedText.addEventListener('input', () => {
+      charCount.textContent = sharedText.value.length;
+    });
+    
+    // 加载文本
+    async function loadText() {
+      try {
+        const response = await fetch('/api/text');
+        const data = await response.json();
+        
+        // 如果服务器文本比本地新，则更新
+        if (data.lastModified !== lastModified) {
+          sharedText.value = data.content || '';
+          charCount.textContent = sharedText.value.length;
+          lastTextContent = data.content || '';
+          lastModified = data.lastModified;
+          updateSyncStatus('synced');
+        }
+      } catch (err) {
+        console.error('加载文本失败:', err);
+        updateSyncStatus('error');
+      }
+    }
+    
+    // 保存文本
+    async function saveText() {
+      const content = sharedText.value;
+      updateSyncStatus('syncing');
+      
+      try {
+        const response = await fetch('/api/text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          lastTextContent = content;
+          lastModified = data.lastModified;
+          updateSyncStatus('synced');
+          showToast('文本已保存', 'success');
+        } else {
+          updateSyncStatus('error');
+          showToast('保存失败', 'error');
+        }
+      } catch (err) {
+        updateSyncStatus('error');
+        showToast('保存失败: ' + err.message, 'error');
+      }
+    }
+    
+    // 清空文本
+    async function clearText() {
+      if (!sharedText.value) return;
+      if (!confirm('确定要清空文本内容吗？')) return;
+      
+      sharedText.value = '';
+      charCount.textContent = '0';
+      await saveText();
+    }
+    
+    // 更新同步状态显示
+    function updateSyncStatus(status) {
+      const statusMap = {
+        synced: { text: '已同步', icon: '✓', class: '' },
+        syncing: { text: '同步中...', icon: '⟳', class: 'syncing' },
+        error: { text: '同步失败', icon: '✗', class: 'error' }
+      };
+      
+      const s = statusMap[status];
+      syncStatus.className = 'sync-status ' + s.class;
+      if (status === 'syncing') syncStatus.classList.add('pulse');
+      syncStatus.innerHTML = `<span>${s.icon}</span> ${s.text}`;
+    }
+    
+    // 自动保存（延迟1秒）
+    let autoSaveTimer = null;
+    sharedText.addEventListener('input', () => {
+      if (autoSaveTimer) clearTimeout(autoSaveTimer);
+      updateSyncStatus('syncing');
+      autoSaveTimer = setTimeout(() => {
+        saveText();
+      }, 1000);
+    });
+    
+    // 页面加载时获取数据
+    loadText();
+    loadFileList();
+    
+    // 自动刷新（文本每2秒，文件每5秒）
+    setInterval(loadText, 2000);
+    setInterval(loadFileList, 5000);
+  </script>
+</body>
+</html>

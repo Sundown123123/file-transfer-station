@@ -1,0 +1,2 @@
+# 仓库内统一按 LF 存储、按 LF 检出，避免每次 git add 都出现换行符警告
+* text=auto eol=lf
